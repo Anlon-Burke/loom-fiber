@@ -4,14 +4,14 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 public class EventContinuation<P,R> {
-  private static final ContinuationScope SCOPE = new ContinuationScope("evant"); 
+  private static final ContinuationScope SCOPE = new ContinuationScope("event");
   
   private final Continuation continuation;
   private P parameter;
   private R yieldValue;
   
   public interface Yielder<P,R> {
-    public P yield(R yieldValue);
+    P yield(R yieldValue);
   }
   
   public EventContinuation(BiFunction<Yielder<? extends P, ? super R>, ? super P, ? extends R> consumer) {

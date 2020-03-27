@@ -20,7 +20,7 @@ public class Server {
   
   public interface IO {
     int read(ByteBuffer buffer) throws IOException;
-    int write(ByteBuffer buffer) throws IOException;
+    void write(ByteBuffer buffer) throws IOException;
     
     default String readLine(ByteBuffer buffer, Charset charset) throws IOException {
       int read;
@@ -56,7 +56,7 @@ public class Server {
   }
   
   
-  static void closeUnconditionnaly(Closeable closeable) {
+  private static void closeUnconditionally(Closeable closeable) {
     try {
       closeable.close();
     } catch (IOException e) {
@@ -76,8 +76,8 @@ public class Server {
           channel = server.accept();
         } catch (IOException e) {
           System.err.println(e.getMessage());
-          closeUnconditionnaly(server);
-          closeUnconditionnaly(selector);
+          closeUnconditionally(server);
+          closeUnconditionally(selector);
           return;
         }
         SelectionKey key;
@@ -86,7 +86,7 @@ public class Server {
           key = channel.register(selector, 0);
         } catch (IOException e) {
           System.err.println(e.getMessage());
-          closeUnconditionnaly(channel);
+          closeUnconditionally(channel);
           return;
         }
         
@@ -105,14 +105,14 @@ public class Server {
             }
 
             @Override
-            public int write(ByteBuffer buffer) throws IOException {
-              int written;
-              while ((written = channel.write(buffer)) == 0) {
-                key.interestOps(SelectionKey.OP_WRITE);
-                Continuation.yield(SCOPE);
+            public void write(ByteBuffer buffer) throws IOException {
+              while(buffer.hasRemaining()) {
+                while (channel.write(buffer) == 0) {
+                  key.interestOps(SelectionKey.OP_WRITE);
+                  Continuation.yield(SCOPE);
+                }
               }
               key.interestOps(0);
-              return written;
             }
           };
           try {
@@ -121,7 +121,7 @@ public class Server {
             e.printStackTrace();
           } finally {
             key.cancel();
-            closeUnconditionnaly(channel);
+            closeUnconditionally(channel);
           }
         });
         key.attach(continuation);
